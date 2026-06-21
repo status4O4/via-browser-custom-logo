@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random GIF</title>
+  <style>
+    :root {
+      --accent: #CBA6F7;
+      --glow: drop-shadow(0 0 10px #CBA6F7);
+      --transition-speed: 0.5s;
+    }
+
+    #gif-container {
+      width: 90vw;
+      height: 30vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      transition: width var(--transition-speed) ease, height var(--transition-speed) ease;
+    }
+
+    /* --- Spinner --- */
+    .spinner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+      font-family: monospace;
+      letter-spacing: 1em;
+      color: var(--accent);
+      filter: var(--glow);
+      pointer-events: none;
+    }
+
+    .spinner.hidden { display: none; }
+
+    .spinner span { animation: bounce 1.75s ease infinite; }
+    .spinner span:nth-child(2) { animation-delay: 0.25s; }
+    .spinner span:nth-child(3) { animation-delay: 0.50s; }
+    .spinner span:nth-child(4) { animation-delay: 0.75s; }
+    .spinner span:nth-child(5) { animation-delay: 1.00s; }
+    .spinner span:nth-child(6) { animation-delay: 1.25s; }
+    .spinner span:nth-child(7) { animation-delay: 1.50s; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-10px); }
+    }
+
+    /* --- GIF image --- */
+    #random-gif {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity var(--transition-speed) ease;
+    }
+
+    #random-gif.visible { opacity: 1; }
+
+
+  </style>
+</head>
+<body>
+
+<div id="gif-container">
+  <div class="spinner" id="spinner">
+    <span>l</span><span>o</span><span>a</span><span>d</span><span>i</span><span>n</span><span>g</span>
+  </div>
+  <img id="random-gif" alt="Random GIF" />
+</div>
+
+<script>
+  const CONFIG = {
+    apiKey: '<YOUR GIPHY API KEY>',
+    tag:    '<YOUR TAG>',
+    rating: 'r',
+  };
+
+  const API_URL = `https://api.giphy.com/v1/gifs/random?api_key=${CONFIG.apiKey}&tag=${encodeURIComponent(CONFIG.tag)}&rating=${CONFIG.rating}`;
+
+  const spinner  = document.getElementById('spinner');
+  const gifEl    = document.getElementById('random-gif');
+
+  function showSpinner() {
+    spinner.classList.remove('hidden');
+    gifEl.classList.remove('visible');
+  }
+
+  function showGif() {
+    spinner.classList.add('hidden');
+    gifEl.classList.add('visible');
+  }
+
+  const FALLBACK_GIF = 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3B4b2V1OTl3NDd2NTF2MWIyemxqNGx3b25vejBjaHhkYmRzazFxdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fo824eF8RcaPSbenrG/giphy.gif';
+
+  function showError(message) {
+    console.error('[GifLoader]', message);
+    gifEl.onload  = showGif;
+    gifEl.onerror = null;
+    gifEl.src     = FALLBACK_GIF;
+  }
+
+  async function loadRandomGif() {
+    showSpinner();
+
+    try {
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const { data } = await response.json();
+
+      if (!data?.images?.original?.url) {
+        throw new Error('GIF data not found in response');
+      }
+
+      gifEl.onload  = showGif;
+      gifEl.onerror = () => showError('Failed to load image');
+      gifEl.src     = data.images.original.url;
+
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  loadRandomGif();
+</script>
+
+</body>
+</html>
